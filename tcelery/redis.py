@@ -1,3 +1,5 @@
+import sys
+
 from functools import partial
 from datetime import timedelta
 
@@ -5,6 +7,14 @@ from tornado import gen
 from tornadoredis import Client
 from tornadoredis.exceptions import ResponseError
 from tornadoredis.pubsub import BaseSubscriber
+
+
+PY3 = sys.version > '3'
+
+if PY3:
+    _MESSAGE = b'message'
+else:
+    _MESSAGE = 'message'
 
 
 class CelerySubscriber(BaseSubscriber):
@@ -17,7 +27,7 @@ class CelerySubscriber(BaseSubscriber):
     def on_message(self, msg):
         if not msg:
             return
-        if msg.kind == 'message' and msg.body:
+        if msg.kind == _MESSAGE and msg.body:
             # Get the list of subscribers for this channel
             for subscriber in self.subscribers[msg.channel].keys():
                 subscriber(msg.body)
