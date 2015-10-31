@@ -11,15 +11,16 @@ from tornadoredis.pubsub import BaseSubscriber
 
 PY3 = sys.version > '3'
 
-if PY3:
-    _MESSAGE = b'message'
-else:
-    _MESSAGE = 'message'
+_MESSAGE = 'message'
 
 
 class CelerySubscriber(BaseSubscriber):
     def unsubscribe_channel(self, channel_name):
         """Unsubscribes the redis client from the channel"""
+        if PY3 and isinstance(channel_name, bytes):
+            channel_name = channel_name.decode('utf-8')
+        assert isinstance(channel_name, str)
+
         del self.subscribers[channel_name]
         del self.subscriber_count[channel_name]
         self.redis.unsubscribe(channel_name)
@@ -29,6 +30,8 @@ class CelerySubscriber(BaseSubscriber):
             return
         if msg.kind == _MESSAGE and msg.body:
             # Get the list of subscribers for this channel
+            assert isinstance(msg.channel, str)
+
             for subscriber in self.subscribers[msg.channel].keys():
                 subscriber(msg.body)
         super(CelerySubscriber, self).on_message(msg)
